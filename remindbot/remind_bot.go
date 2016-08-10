@@ -1,7 +1,9 @@
 package remindbot
 
 import (
+	"errors"
 	"os"
+	"strings"
 
 	"golang.org/x/net/context"
 
@@ -16,10 +18,18 @@ func startRemindBot() {
 }
 
 func remindResponseHandler(ctx context.Context, bot *slackbot.Bot, evt *slack.MessageEvent) {
-	// evt.Msg.Text is the full string that was entered, so lets parse that through
-	// using the remindBot library, something like this:
-	// remindText := remindBot.GetDueDate()
-	// 	bot.Reply(evt, response, slackbot.WithTyping)
-
+	referencedAssignment, err := parseAssignment(evt.Msg.Text)
+	if err != nil {
+		bot.Reply(evt, "Unrecognized Pattern", slackbot.WithTyping)
+	}
+	remindText := bot.GetDueDate(referencedAssignment)
 	bot.Reply(evt, "Here is your reminder: "+remindText, slackbot.WithTyping)
+}
+
+func parseAssignment(fullInput string) (string, error) {
+	params := strings.Split(fullInput, " ")
+	if len(params) > 2 {
+		return " ", errors.New("Unrecognized Pattern")
+	}
+	return params[1], nil
 }
